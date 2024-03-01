@@ -76,7 +76,7 @@ static class SchoolChessTournamentManager
         var newRankingFileName = Path.Combine(rankingsPath, $"RankingsBeforeRound{nextRoundNumber:D2}.csv");
         if (!File.Exists(newRankingFileName))
         {
-            var newRankings = GenerateNewRankings(allPairings);
+            var newRankings = GenerateNewRankings(allPairings, lastRanking);
             
             SaveRankings(newRankings, newRankingFileName);
             Console.WriteLine($"New rankings saved to {newRankingFileName}");
@@ -163,7 +163,7 @@ static class SchoolChessTournamentManager
         File.WriteAllLines(filePath, lines);
     }
     
-    static List<Player> GenerateNewRankings(List<Round> allPairings)
+    static List<Player> GenerateNewRankings(List<Round> allPairings, List<Player> previousRankings)
     {
         // Pick up all results and generate new Rankings file
         var allPlayerNames = new Dictionary<string, decimal>();
@@ -190,42 +190,64 @@ static class SchoolChessTournamentManager
             }
         }
         
+        // If for some reason players were removed in the pairing, but have been in the tournament before, add them to these new pairings
+        foreach (var player in previousRankings)
+        {
+            allPlayerNames.TryAdd(player.Name, 0);
+        }
+        
         var players = allPlayerNames.Select(p => new Player { Name = p.Key, TotalPoints = p.Value }).ToList();
         return players;
     }
 
-    static List<Pairing> GeneratePairings(List<Player> players, List<Round> allPreviousPairings)
+    public static List<Pairing> GeneratePairings(List<Player> players, List<Round> allPreviousRounds)
     {
-        // Simple pairing mechanism: pair adjacent players in the sorted list
-        var sortedPlayers = players.OrderByDescending(p=>p.TotalPoints).ToList();
-        var pairings = new List<Pairing>();
-        for (int i = 0; i < sortedPlayers.Count; i += 2)
+        // Sort players by TotalPoints in descending order
+        var sortedPlayers = players.OrderByDescending(p => p.TotalPoints).ToList();
+
+        var newPairings = new List<Pairing>();
+        var usedPlayers = new HashSet<Player>();
+
+        // Collect all previous pairings into a hash set for quick lookup
+        var previousPairings = new HashSet<(Player, Player)>();
+        foreach (var round in allPreviousRounds)
         {
-            if (i + 1 < sortedPlayers.Count)
+            foreach (var pairing in round.Pairings)
             {
-                pairings.Add(new Pairing
-                {
-                    WhitePiecesPlayer = sortedPlayers[i],
-                    BlackPiecesPlayer = sortedPlayers[i + 1],
-                    Result = "" // Result is empty for new pairings
-                });
-            }
-            else
-            {
-                // Handle bye
-                sortedPlayers[i].TotalPoints += 1; // Award 1 point for a bye
+                previousPairings.Add((pairing.WhitePiecesPlayer, pairing.BlackPiecesPlayer));
             }
         }
 
-        return pairings;
+        // Attempt to pair each player, starting from the player with the highest points
+        foreach (var player in sortedPlayers)
+        {
+            if (usedPlayers.Contains(player)) continue; // Skip if the player has already been paired in this round
+
+            // Find the next available player with a similar score who hasn't been paired with this player before
+            var opponent = sortedPlayers.FirstOrDefault(p => 
+                p != player && 
+                !usedPlayers.Contains(p) && 
+                !previousPairings.Contains((player, p)) &&
+                !previousPairings.Contains((p, player)));
+
+            if (opponent != null)
+            {
+                // Create a new pairing and mark both players as used
+                newPairings.Add(new Pairing { WhitePiecesPlayer = player, BlackPiecesPlayer = opponent, Result = "" });
+                usedPlayers.Add(player);
+                usedPlayers.Add(opponent);
+            }
+        }
+
+        return newPairings;
     }
 }
 
-class Player
-{
-    public required string Name { get; set; }
-    public decimal TotalPoints { get; set; }
-}
+    class Player
+    {
+        public required string Name { get; set; }
+        public decimal TotalPoints { get; set; }
+    }
 
 class Round
 {

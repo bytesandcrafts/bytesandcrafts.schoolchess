@@ -41,7 +41,7 @@ After this second run of the program, the folder structure will look something l
 
 User can then take the PairingsRound02.csv file and print it for the tournament, run the tournament, collect the results and update those results in PairingsRound02.csv file.
 
-Some rules when it comes to create Rankings file:
+Some rules when it comes to Rankings file:
 - Rankings file will contain all the players that exist in the Pairings file for the round and all players that exist in the previous ranking file. (as some kids might show up in the second round or third round etc. and that information will be in the updated Pairings file).
 - If a player is not in the Pairings file for the round, then the Total Points for that player will be the same as the previous round.
 - If a player is in the Pairings file for the round, then the Total Points for that player will be the same as the previous round + 1 if the player won, + 0.5 if the player drew and + 0 if the player lost.
