@@ -203,7 +203,7 @@ static class SchoolChessTournamentManager
     public static List<Pairing> GeneratePairings(List<Player> players, List<Round> allPreviousRounds)
     {
         // Sort players by TotalPoints in descending order
-        var sortedPlayers = players.OrderByDescending(p => p.TotalPoints).ToList();
+        var sortedPlayers = players.OrderByDescending(p => p.TotalPoints).ThenBy(p=>p.Name.GetHashCode()).ToList();
 
         var newPairings = new List<Pairing>();
         var usedPlayers = new HashSet<Player>();
