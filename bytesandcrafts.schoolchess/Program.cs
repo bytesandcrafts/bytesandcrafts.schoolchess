@@ -152,7 +152,8 @@ static class SchoolChessTournamentManager
     static void SaveRankings(List<Player> players, string filePath)
     {
         var lines = new List<string> { "Name, Total Points" };
-        lines.AddRange(players.OrderByDescending(p=>p.TotalPoints).Select(p => $"{p.Name}, {p.TotalPoints}"));
+        lines.AddRange(players.Where(p => !string.IsNullOrEmpty(p.Name)).OrderByDescending(p => p.TotalPoints)
+            .Select(p => $"{p.Name}, {p.TotalPoints}"));
         File.WriteAllLines(filePath, lines);
     }
 
@@ -236,6 +237,12 @@ static class SchoolChessTournamentManager
                 newPairings.Add(new Pairing { WhitePiecesPlayer = player, BlackPiecesPlayer = opponent, Result = "" });
                 usedPlayers.Add(player);
                 usedPlayers.Add(opponent);
+            }
+            else
+            {
+                // If no opponent is found, the player gets a bye
+                newPairings.Add(new Pairing { WhitePiecesPlayer = player, BlackPiecesPlayer = new Player { Name = "" }, Result = "" });
+                usedPlayers.Add(player);
             }
         }
 
